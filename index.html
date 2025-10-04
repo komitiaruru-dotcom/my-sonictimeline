@@ -15,10 +15,20 @@
         - ✨ AIゲーム概要 (AI Game Summary): Report Info -> 個別のゲームタイトル。 Goal -> 各ゲームの概要（ストーリー、ゲーム性、評価）をオンデマンドで提供。 Viz/Presentation -> カード内のテキストエリア (HTML)。 Interaction -> 「AIで概要を生成」ボタンをクリックすると、Gemini APIを呼び出し、結果を表示。 Justification -> Gemini APIの活用により、静的なデータセットにはない付加価値の高い情報（ゲーム内容の要約）を動的に提供できます。これにより、ユーザーの知的好奇心を満たし、アプリのエンゲージメントを高めます。
     -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
-    <style>
-        body {
-            font-family: 'Inter', 'Noto Sans JP', sans-serif;
-            background-color: #f0f4f8;
+    <style>        body {            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            background-image: url('https://i.imgur.com/PMxYD3C.jpeg');
+            background-size: cover;
+            background-position: center center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .main-container {
+             background-color: transparent;
+             box-shadow: none;
+        }
+        .header-title {
+            text-shadow: 0 2px 5px rgba(0,0,0,0.4);
         }
         .filter-button.active {
             background-color: #0070d1;
@@ -28,6 +38,9 @@
         .timeline-card {
             transition: all 0.3s ease-in-out;
             border-left-width: 4px;
+            background-color: rgba(255, 255, 255, 0.85) !important;
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
         }
         .timeline-card:hover {
             transform: translateY(-4px);
@@ -63,11 +76,16 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .bg-white {
+            background-color: rgba(255, 255, 255, 0.85) !important;
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+        }
     </style>
 </head>
 <body class="antialiased text-gray-800">
 
-    <div class="container mx-auto p-4 md:p-8">
+    <div class="container main-container mx-auto p-4 md:p-8">
 
         <header class="text-center mb-8">
             <h1 class="text-4xl md:text-5xl font-bold text-gray-900">ソニック・ザ・ヘッジホッグ</h1>
