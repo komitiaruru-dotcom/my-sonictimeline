@@ -1,0 +1,480 @@
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ソニック・ザ・ヘッジホッグ 発売年表 (完全版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Sonic Blue & Gold -->
+    <!-- Application Structure Plan: このSPAは、ユーザーがソニックの長大な歴史を効率的に探索できるよう、単一のインタラクティブなダッシュボードとして設計されています。静的なリストではなく、①プラットフォーム、②発売地域、③キーワード検索の3つの動的なフィルターを画面上部に配置しました。これにより、ユーザーは「メガドライブの作品だけ見る」「日本の初期作品を調べる」といった具体的な目的を持って情報を絞り込めます。フィルターの下には、年間のリリース本数を可視化する棒グラフを配置。これにより、シリーズが最も活発だった時期が一目でわかります。メインコンテンツは、フィルター結果を反映するカード形式の年表です。各カードにはGemini APIを利用した「AI概要生成」機能を追加。これにより、ユーザーは年表を眺めるだけでなく、気になった作品の詳細情報を即座に得られるようになり、探索体験がより深まります。この「フィルター → グラフで傾向把握 → 詳細リストで確認 → AIで深掘り」という流れは、膨大な時系列データをユーザーが能動的に分析し、理解するための最適なユーザーフローだと判断しました。 -->
+    <!-- Visualization & Content Choices: 
+        - 年表 (Timeline): Report Info -> ソニックシリーズの全発売タイトルリスト (Fandom Wiki準拠、Wii Uデータ補強)。 Goal -> 特定の作品を時系列で整理・表示。 Viz/Presentation -> 年ごとにグループ化されたカード型リスト (HTML/CSS)。 Interaction -> フィルター（プラットフォーム、地域）とキーワード検索で動的に絞り込み。 Justification -> カード型は各タイトルの情報を整理しやすく、レスポンシブデザインにも適しているため、視認性と操作性に優れています。
+        - 年間リリース本数 (Releases per Year): Report Info -> 各年の発売タイトル数。 Goal -> シリーズの活動量の変遷を比較・可視化。 Viz/Presentation -> 棒グラフ (Chart.js/Canvas)。 Interaction -> 上部のフィルターと連動し、表示されるデータが動的に変化。 Justification -> 棒グラフは年ごとのリリース本数という数量データを比較するのに最も直感的で効果的な手法です。フィルターとの連動により、例えば「任天堂ハードでのリリース傾向」といった深い分析も可能になります。
+        - ✨ AIゲーム概要 (AI Game Summary): Report Info -> 個別のゲームタイトル。 Goal -> 各ゲームの概要（ストーリー、ゲーム性、評価）をオンデマンドで提供。 Viz/Presentation -> カード内のテキストエリア (HTML)。 Interaction -> 「AIで概要を生成」ボタンをクリックすると、Gemini APIを呼び出し、結果を表示。 Justification -> Gemini APIの活用により、静的なデータセットにはない付加価値の高い情報（ゲーム内容の要約）を動的に提供できます。これにより、ユーザーの知的好奇心を満たし、アプリのエンゲージメントを高めます。
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            background-color: #f0f4f8;
+        }
+        .filter-button.active {
+            background-color: #0070d1;
+            color: white;
+            border-color: #0056a4;
+        }
+        .timeline-card {
+            transition: all 0.3s ease-in-out;
+            border-left-width: 4px;
+        }
+        .timeline-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .highlight {
+            background-color: #ffd700;
+            border-radius: 3px;
+        }
+        .summary-container {
+            background-color: #f8f9fa;
+            border-left: 3px solid #0070d1;
+            padding: 0.75rem;
+            border-radius: 0.25rem;
+            min-height: 50px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .generate-summary-btn:disabled {
+            background-color: #e9ecef;
+            cursor: not-allowed;
+            color: #6c757d;
+        }
+        .loader {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #0070d1;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="antialiased text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-900">ソニック・ザ・ヘッジホッグ</h1>
+            <h2 class="text-2xl md:text-3xl font-bold text-[#0070d1]">インタラクティブ発売年表 (完全版)</h2>
+            <p class="mt-2 text-gray-600 max-w-2xl mx-auto"></p>
+        </header>
+
+        <div class="bg-white rounded-xl shadow-lg p-4 md:p-6 mb-8 sticky top-4 z-10">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="platform-filter" class="block text-sm font-medium text-gray-700 mb-1">プラットフォーム</label>
+                    <select id="platform-filter" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option value="all">すべてのプラットフォーム</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">発売地域</label>
+                    <div id="region-filter" class="flex space-x-2">
+                        <button data-region="all" class="filter-button active flex-1 py-2 px-3 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition">すべて</button>
+                        <button data-region="jp" class="filter-button flex-1 py-2 px-3 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition">日本</button>
+                        <button data-region="overseas" class="filter-button flex-1 py-2 px-3 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition">海外</button>
+                    </div>
+                </div>
+                <div>
+                    <label for="search-box" class="block text-sm font-medium text-gray-700 mb-1">タイトル検索</label>
+                    <input type="text" id="search-box" placeholder="例: アドベンチャー" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                </div>
+            </div>
+        </div>
+
+        <section id="chart-section" class="mb-8 bg-white p-4 md:p-6 rounded-xl shadow-lg">
+            <h3 class="text-xl font-bold mb-4 text-center text-gray-800">年間リリース本数</h3>
+            <p class="text-center text-gray-600 text-sm mb-4">上のフィルターを操作すると、グラフも動的に変化します。これにより、特定のプラットフォームや地域におけるシリーズの活動の波を視覚的に捉えることができます。</p>
+            <div class="chart-container relative mx-auto w-full max-w-4xl h-72 md:h-96">
+                <canvas id="releases-per-year-chart"></canvas>
+            </div>
+        </section>
+
+        <section id="timeline-section">
+             <div class="flex flex-col items-center justify-center mb-6">
+                 <h3 class="text-xl font-bold text-center text-gray-800">ゲームタイトル年表</h3>
+                 <p id="results-count" class="text-center text-gray-600 text-sm mt-2">フィルターを適用して、ソニックの歴史を深く掘り下げてみましょう。</p>
+            </div>
+            <div id="timeline-container" class="space-y-8">
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        const gameData = [
+            { year: 1991, title: 'ソニック・ザ・ヘッジホッグ (16-bit)', platform: 'MD/Genesis', jp_date: '1991/07/26', overseas_date: '1991/06/23' },
+            { year: 1991, title: 'ソニック・ザ・ヘッジホッグ (8-bit)', platform: 'GG/SMS', jp_date: '1991/12/28', overseas_date: '1991/10/25' },
+            { year: 1991, title: 'わくわくソニックパトカー', platform: 'AC', jp_date: '1991/--/--', overseas_date: '未発売'},
+            { year: 1992, title: 'ソニック・ザ・ヘッジホッグ2 (16-bit)', platform: 'MD/Genesis', jp_date: '1992/11/21', overseas_date: '1992/11/24' },
+            { year: 1992, title: 'ソニック・ザ・ヘッジホッグ2 (8-bit)', platform: 'GG/SMS', jp_date: '1992/11/21', overseas_date: '1992/10/29' },
+            { year: 1993, title: 'ソニック・ザ・ヘッジホッグCD', platform: 'MCD/Sega CD', jp_date: '1993/09/23', overseas_date: '1993/10/19' },
+            { year: 1993, title: 'セガソニック・ザ・ヘッジホッグ', platform: 'AC', jp_date: '1993/09/--', overseas_date: '1993/10/--'},
+            { year: 1993, title: 'ソニック&テイルス (Sonic Chaos)', platform: 'GG/SMS', jp_date: '1993/11/19', overseas_date: '1993/10/25' },
+            { year: 1993, title: 'ドクターエッグマンのミーンビーンマシーン', platform: 'MD/Genesis/GG', jp_date: '1993/11/19 (GG)', overseas_date: '1993/11/--' },
+            { year: 1993, title: 'ソニック スピンボール', platform: 'MD/Genesis/GG', jp_date: '1993/12/10', overseas_date: '1993/11/--' },
+            { year: 1993, title: 'セガソニック コスモファイター', platform: 'AC', jp_date: '1993/--/--', overseas_date: '未発売'},
+            { year: 1994, title: 'ソニック・ザ・ヘッジホッグ3', platform: 'MD/Genesis', jp_date: '1994/05/27', overseas_date: '1994/02/02' },
+            { year: 1994, title: 'ソニック ドリフト', platform: 'GG', jp_date: '1994/03/18', overseas_date: '未発売'},
+            { year: 1994, title: 'ソニック&ナックルズ', platform: 'MD/Genesis', jp_date: '1994/10/18', overseas_date: '1994/10/18' },
+            { year: 1994, title: 'ソニック&テイルス2 (Sonic Triple Trouble)', platform: 'GG', jp_date: '1994/11/11', overseas_date: '1994/10/--'},
+            { year: 1994, title: 'ソニック・ザ・ヘッジホッグ ゲームワールド', platform: 'Pico', jp_date: '1994/08/--', overseas_date: '1996/--/--'},
+            { year: 1994, title: 'テイルスと音楽メーカー', platform: 'Pico', jp_date: '未発売', overseas_date: '1994/09/--'},
+            { year: 1995, title: 'カオティクス', platform: '32X', jp_date: '1995/04/21', overseas_date: '1995/03/--' },
+            { year: 1995, title: 'ソニック ドリフト2', platform: 'GG', jp_date: '1995/03/17', overseas_date: '1995/03/--' },
+            { year: 1995, title: 'テイルスのスカイパトロール', platform: 'GG', jp_date: '1995/04/28', overseas_date: '未発売'},
+            { year: 1995, title: 'テイルスアドベンチャー', platform: 'GG', jp_date: '1995/09/22', overseas_date: '1995/09/--'},
+            { year: 1995, title: 'ソニックラビリンス', platform: 'GG', jp_date: '1995/11/17', overseas_date: '1995/10/--'},
+            { year: 1996, title: 'ソニック・ザ・ファイターズ', platform: 'AC', jp_date: '1996/06/--', overseas_date: '1996/07/--'},
+            { year: 1996, title: 'ソニック3Dブラスト', platform: 'MD/Genesis/SS/PC', jp_date: '1996/12/07', overseas_date: '1996/11/05' },
+            { year: 1996, title: 'Gソニック (Sonic Blast)', platform: 'GG', jp_date: '1996/12/13', overseas_date: '1996/11/--'},
+            { year: 1997, title: 'ソニックR', platform: 'SS/PC', jp_date: '1997/12/04', overseas_date: '1997/11/18' },
+            { year: 1998, title: 'ソニックアドベンチャー', platform: 'DC', jp_date: '1998/12/23', overseas_date: '1999/09/09' },
+            { year: 1999, title: 'ソニック・ザ・ヘッジホッグ ポケットアドベンチャー', platform: 'NGPC', jp_date: '1999/12/16', overseas_date: '1999/11/30'},
+            { year: 2000, title: 'ソニックシャッフル', platform: 'DC', jp_date: '2000/12/21', overseas_date: '2000/11/14'},
+            { year: 2001, title: 'ソニックアドベンチャー2', platform: 'DC', jp_date: '2001/06/23', overseas_date: '2001/06/19' },
+            { year: 2001, title: 'ソニックアドバンス', platform: 'GBA', jp_date: '2001/12/20', overseas_date: '2002/02/03' },
+            { year: 2002, title: 'ソニックアドバンス2', platform: 'GBA', jp_date: '2002/12/19', overseas_date: '2003/03/09' },
+            { year: 2003, title: 'ソニックヒーローズ', platform: 'GC/PS2/Xbox/PC', jp_date: '2003/12/30', overseas_date: '2004/01/05' },
+            { year: 2004, title: 'ソニックアドバンス3', platform: 'GBA', jp_date: '2004/06/17', overseas_date: '2004/06/07' },
+            { year: 2005, title: 'シャドウ・ザ・ヘッジホッグ', platform: 'GC/PS2/Xbox', jp_date: '2005/12/15', overseas_date: '2005/11/15' },
+            { year: 2006, title: 'ソニックライダーズ', platform: 'GC/PS2/Xbox/PC', jp_date: '2006/02/23', overseas_date: '2006/02/21'},
+            { year: 2006, title: 'ソニック・ザ・ヘッジホッグ (2006)', platform: 'PS3/X360', jp_date: '2006/12/21', overseas_date: '2006/11/14' },
+            { year: 2006, title: 'ソニック ライバルズ', platform: 'PSP', jp_date: '未発売', overseas_date: '2006/11/16' },
+            { year: 2007, title: 'ソニックと秘密のリング', platform: 'Wii', jp_date: '2007/03/15', overseas_date: '2007/02/20' },
+            { year: 2007, title: 'マリオ&ソニック AT 北京オリンピック', platform: 'Wii/DS', jp_date: '2007/11/22', overseas_date: '2007/11/06'},
+            { year: 2007, title: 'ソニック ライバルズ2', platform: 'PSP', jp_date: '未発売', overseas_date: '2007/11/13' },
+            { year: 2008, title: 'ソニックライダーズ シューティングスターストーリー', platform: 'Wii/PS2', jp_date: '2008/01/17', overseas_date: '2008/01/08'},
+            { year: 2008, title: 'ソニック ワールドアドベンチャー', platform: 'Wii/PS3/X360', jp_date: '2009/02/19', overseas_date: '2008/11/18' },
+            { year: 2009, title: 'ソニックと暗黒の騎士', platform: 'Wii', jp_date: '2009/03/12', overseas_date: '2009/03/03' },
+            { year: 2009, title: 'マリオ&ソニック AT バンクーバーオリンピック', platform: 'Wii/DS', jp_date: '2009/11/05', overseas_date: '2009/10/13'},
+            { year: 2010, title: 'ソニック&セガ オールスターズ レーシング', platform: 'PS3/X360/Wii/DS/PC', jp_date: '未発売', overseas_date: '2010/02/23'},
+            { year: 2010, title: 'ソニック カラーズ', platform: 'Wii/DS', jp_date: '2010/11/18', overseas_date: '2010/11/11' },
+            { year: 2011, title: 'ソニック ジェネレーションズ', platform: 'PS3/X360/PC/3DS', jp_date: '2011/12/01', overseas_date: '2011/11/01' },
+            { year: 2011, title: 'マリオ&ソニック AT ロンドンオリンピック', platform: 'Wii/3DS', jp_date: '2011/12/08', overseas_date: '2011/11/13'},
+            { year: 2012, title: 'ソニック&オールスターレーシング トランスフォームド', platform: 'PS3/X360/Wii U/PC', jp_date: '2014/05/15', overseas_date: '2012/11/18' },
+            { year: 2013, title: 'ソニック ロストワールド', platform: 'Wii U/3DS/PC', jp_date: '2013/10/24', overseas_date: '2013/10/18' },
+            { year: 2013, title: 'マリオ&ソニック AT ソチオリンピック', platform: 'Wii U', jp_date: '2013/12/05', overseas_date: '2013/11/08'},
+            { year: 2014, title: 'ソニックトゥーン アイランドアドベンチャー/クリスタルアドベンチャー', platform: '3DS', jp_date: '2014/12/18', overseas_date: '2014/11/11' },
+            { year: 2014, title: 'ソニックトゥーン 太古の秘宝 (Sonic Boom: Rise of Lyric)', platform: 'Wii U', jp_date: '2014/12/18', overseas_date: '2014/11/11' },
+            { year: 2014, title: '大乱闘スマッシュブラザーズ for Wii U', platform: 'Wii U', jp_date: '2014/12/06', overseas_date: '2014/11/21' },
+            { year: 2015, title: 'スーパーマリオメーカー', platform: 'Wii U', jp_date: '2015/09/11', overseas_date: '2015/09/11', note: 'ハテナキノコを取ると、ソニックコスチュームが使用可能。'},
+            { year: 2015, title: 'レゴ ディメンションズ (Lego Dimensions)', platform: 'PS4/PS3/Wii U/XOne/X360', jp_date: '未発売', overseas_date: '2015/09/27' },
+            { year: 2016, title: 'ソニックトゥーン ファイアー&アイス', platform: '3DS', jp_date: '2016/10/27', overseas_date: '2016/09/27' },
+            { year: 2016, title: 'マリオ&ソニック AT リオオリンピック (AC/3DS)', platform: 'AC/3DS', jp_date: '2016/02/18', overseas_date: '2016/03/18'},
+            { year: 2016, title: 'マリオ&ソニック AT リオオリンピック (Wii U)', platform: 'Wii U', jp_date: '2016/06/23', overseas_date: '2016/06/24' },
+            { year: 2017, title: 'ソニックマニア', platform: 'PS4/Switch/XOne/PC', jp_date: '2017/08/16', overseas_date: '2017/08/15' },
+            { year: 2017, title: 'ソニックフォース', platform: 'PS4/Switch/XOne/PC', jp_date: '2017/11/09', overseas_date: '2017/11/07' },
+            { year: 2019, title: 'チームソニックレーシング', platform: 'PS4/Switch/XOne/PC', jp_date: '2019/05/21', overseas_date: '2019/05/21' },
+            { year: 2019, title: 'マリオ&ソニック AT 東京2020オリンピック', platform: 'Switch/AC', jp_date: '2019/11/01', overseas_date: '2019/11/05'},
+            { year: 2021, title: 'ソニックカラーズ アルティメット', platform: 'PS4/Switch/XOne/PC', jp_date: '2021/09/09', overseas_date: '2021/09/07' },
+            { year: 2022, title: 'ソニックオリジンズ', platform: 'PS5/PS4/Switch/XSX/XOne/PC', jp_date: '2022/06/23', overseas_date: '2022/06/23' },
+            { year: 2022, title: 'ソニックフロンティア', platform: 'PS5/PS4/Switch/XSX/XOne/PC', jp_date: '2022/11/08', overseas_date: '2022/11/08' },
+            { year: 2023, title: 'ソニックスーパースターズ', platform: 'PS5/PS4/Switch/XSX/XOne/PC', jp_date: '2023/10/17', overseas_date: '2023/10/17' },
+            { year: 2024, title: 'ソニック × シャドウ ジェネレーションズ', platform: 'PS5/PS4/Switch/XSX/XOne/PC', jp_date: '2024/10/25', overseas_date: '2024/10/25' },
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const platformFilter = document.getElementById('platform-filter');
+            const regionFilterContainer = document.getElementById('region-filter');
+            const searchBox = document.getElementById('search-box');
+            const timelineContainer = document.getElementById('timeline-container');
+            const resultsCount = document.getElementById('results-count');
+
+            let currentPlatform = 'all';
+            let currentRegion = 'all';
+            let currentSearch = '';
+            
+            let chart;
+
+            const apiKey = "";
+
+            async function generateSummary(game, button, summaryDiv) {
+                button.disabled = true;
+                button.innerHTML = '<div class="loader mx-auto"></div>';
+                summaryDiv.textContent = 'AIが概要を生成中...';
+
+                const systemPrompt = "あなたはゲームに詳しいアナリストです。ユーザーから指定されたゲームについて、そのゲームのストーリー、ゲームシステムとしての特徴、そして発売当時の評価や後世に与えた影響などを、日本語で300字程度の魅力的な紹介文にまとめてください。";
+                const userQuery = `'${game.title}' というゲームについてまとめてください。`;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+                try {
+                    const payload = {
+                        contents: [{ parts: [{ text: userQuery }] }],
+                        systemInstruction: {
+                            parts: [{ text: systemPrompt }]
+                        },
+                    };
+
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`API Error: ${response.statusText}`);
+                    }
+
+                    const result = await response.json();
+                    const candidate = result.candidates?.[0];
+
+                    if (candidate && candidate.content?.parts?.[0]?.text) {
+                        summaryDiv.textContent = candidate.content.parts[0].text;
+                    } else {
+                        summaryDiv.textContent = '概要を生成できませんでした。レスポンスが不正です。';
+                    }
+                } catch (error) {
+                    console.error('Error fetching summary:', error);
+                    summaryDiv.textContent = '概要の生成中にエラーが発生しました。しばらくしてからもう一度お試しください。';
+                } finally {
+                    button.disabled = false;
+                    button.innerHTML = '✨ AIで概要を再生成';
+                }
+            }
+
+            function getPlatformColor(platform) {
+                if (platform.includes('MD') || platform.includes('Genesis') || platform.includes('MCD') || platform.includes('32X') || platform.includes('GG') || platform.includes('SS') || platform.includes('DC') || platform.includes('Pico')) return '#0070d1'; // SEGA Blue
+                if (platform.includes('Wii') || platform.includes('Switch') || platform.includes('GBA') || platform.includes('DS') || platform.includes('3DS') || platform.includes('GC') ) return '#e60012'; // Nintendo Red
+                if (platform.includes('PS')) return '#003791'; // PlayStation Blue
+                if (platform.includes('Xbox') || platform.includes('XOne') || platform.includes('XSX') || platform.includes('X360')) return '#107c10'; // Xbox Green
+                if (platform.includes('PC')) return '#333333'; // PC Gray
+                if (platform.includes('AC')) return '#F9A825'; // Arcade Yellow
+                if (platform.includes('NGPC')) return '#000000'; // Neo Geo Black
+                return '#6b7280'; // Default Gray
+            }
+
+            function renderTimeline(filteredData) {
+                timelineContainer.innerHTML = '';
+                if (filteredData.length === 0) {
+                    timelineContainer.innerHTML = '<p class="text-center text-gray-500">該当するタイトルがありません。</p>';
+                    resultsCount.textContent = '0件のタイトルが見つかりました。';
+                    return;
+                }
+
+                resultsCount.textContent = `${filteredData.length}件のタイトルが見つかりました。`;
+
+                const groupedByYear = filteredData.reduce((acc, game) => {
+                    (acc[game.year] = acc[game.year] || []).push(game);
+                    return acc;
+                }, {});
+
+                const sortedYears = Object.keys(groupedByYear).sort((a, b) => a - b);
+
+                sortedYears.forEach(year => {
+                    const yearDiv = document.createElement('div');
+                    yearDiv.innerHTML = `<h3 class="text-2xl font-bold mb-4 pl-2 border-l-4 border-[#0070d1]">${year}</h3>`;
+                    
+                    const gamesGrid = document.createElement('div');
+                    gamesGrid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
+
+                    groupedByYear[year].forEach(game => {
+                        const card = document.createElement('div');
+                        const platformColor = getPlatformColor(game.platform);
+                        card.className = `timeline-card bg-white rounded-lg shadow-md p-4 flex flex-col`;
+                        card.style.borderColor = platformColor;
+
+                        let titleHTML = game.title;
+                        if (currentSearch) {
+                            const regex = new RegExp(currentSearch.replace(/[.*+?^${}()|[\\]/g, '\\$&'), 'gi');
+                            titleHTML = titleHTML.replace(regex, '<span class="highlight">$&</span>');
+                        }
+
+                        const summaryId = `summary-${game.year}-${game.title.replace(/[^a-zA-Z0-9]/g, '')}`;
+                        const noteHTML = game.note ? `<p class="text-xs text-gray-500 mt-3 italic p-2 bg-gray-50 rounded-md">ⓘ ${game.note}</p>` : '';
+
+
+                        card.innerHTML = `
+                            <div class="flex-grow">
+                                <h4 class="font-bold text-lg text-gray-900 mb-2">${titleHTML}</h4>
+                                <div class="text-sm space-y-2">
+                                    <p class="flex items-center"><span class="font-semibold w-24">プラットフォーム:</span> <span class="px-2 py-0.5 text-xs font-semibold rounded-full" style="background-color:${platformColor}20; color:${platformColor}">${game.platform}</span></p>
+                                    <p><span class="font-semibold w-24 inline-block">日本発売日:</span> <span>${game.jp_date}</span></p>
+                                    <p><span class="font-semibold w-24 inline-block">海外発売日:</span> <span>${game.overseas_date}</span></p>
+                                </div>
+                                ${noteHTML}
+                            </div>
+                            <div class="mt-4">
+                                <button class="generate-summary-btn w-full bg-blue-100 text-blue-800 hover:bg-blue-200 font-semibold py-2 px-4 rounded-md transition text-sm">✨ AIで概要を生成</button>
+                                <div id="${summaryId}" class="summary-container mt-2 text-sm text-gray-700 hidden"></div>
+                            </div>
+                        `;
+                        gamesGrid.appendChild(card);
+                        
+                        const summaryBtn = card.querySelector('.generate-summary-btn');
+                        const summaryDiv = card.querySelector(`#${summaryId}`);
+                        
+                        summaryBtn.addEventListener('click', () => {
+                            if(summaryDiv.classList.contains('hidden')) {
+                                summaryDiv.classList.remove('hidden');
+                                generateSummary(game, summaryBtn, summaryDiv);
+                            } else {
+                                if (summaryBtn.innerHTML.includes('再生成')) {
+                                    generateSummary(game, summaryBtn, summaryDiv);
+                                } else {
+                                     summaryDiv.classList.add('hidden');
+                                }
+                            }
+                        });
+                    });
+                    yearDiv.appendChild(gamesGrid);
+                    timelineContainer.appendChild(yearDiv);
+                });
+            }
+
+            function updateChart(filteredData) {
+                const releasesPerYear = filteredData.reduce((acc, game) => {
+                    acc[game.year] = (acc[game.year] || 0) + 1;
+                    return acc;
+                }, {});
+
+                const sortedYears = Object.keys(releasesPerYear).sort((a, b) => a - b);
+                const chartLabels = sortedYears;
+                const chartData = sortedYears.map(year => releasesPerYear[year]);
+
+                if (chart) {
+                    chart.data.labels = chartLabels;
+                    chart.data.datasets[0].data = chartData;
+                    chart.update();
+                } else {
+                    const ctx = document.getElementById('releases-per-year-chart').getContext('2d');
+                    chart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: chartLabels,
+                            datasets: [{
+                                label: 'リリース本数',
+                                data: chartData,
+                                backgroundColor: 'rgba(0, 112, 209, 0.6)',
+                                borderColor: 'rgba(0, 112, 209, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        stepSize: 1
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                tooltip: {
+                                     callbacks: {
+                                        title: function(context) {
+                                            return `${context[0].label}年`;
+                                        },
+                                        label: function(context) {
+                                            return `リリース本数: ${context.raw}本`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            function applyFilters() {
+                // Sort the whole dataset by year, then by original release date to ensure chronological order
+                gameData.sort((a, b) => {
+                    if (a.year !== b.year) {
+                        return a.year - b.year;
+                    }
+                    // Use overseas date as primary sort key as it's often earlier
+                    const dateA = new Date(a.overseas_date.split(' ')[0].replace(/--/g, '01'));
+                    const dateB = new Date(b.overseas_date.split(' ')[0].replace(/--/g, '01'));
+                    if (dateA.getTime() !== dateB.getTime()) {
+                        return dateA - dateB;
+                    }
+                     // Fallback to JP date
+                    const dateA_jp = new Date(a.jp_date.split(' ')[0].replace(/--/g, '01'));
+                    const dateB_jp = new Date(b.jp_date.split(' ')[0].replace(/--/g, '01'));
+                    return dateA_jp - dateB_jp;
+                });
+
+                let filteredData = [...gameData];
+
+                if (currentPlatform !== 'all') {
+                    filteredData = filteredData.filter(game => game.platform.split('/').includes(currentPlatform));
+                }
+
+                if (currentRegion === 'jp') {
+                    filteredData = filteredData.filter(game => game.jp_date !== '未発売');
+                } else if (currentRegion === 'overseas') {
+                    filteredData = filteredData.filter(game => game.overseas_date !== '未発売');
+                }
+                
+                if (currentSearch) {
+                    try {
+                        const regex = new RegExp(currentSearch.replace(/[.*+?^${}()|[\\]/g, '\\$&'), 'i');
+                        filteredData = filteredData.filter(game => regex.test(game.title));
+                    } catch (e) {
+                         console.error("Invalid regex:", e);
+                    }
+                }
+                
+                renderTimeline(filteredData);
+                updateChart(filteredData);
+            }
+            
+            function populatePlatformFilter() {
+                const platforms = [...new Set(gameData.flatMap(g => g.platform.split('/')))].sort();
+                platforms.forEach(p => {
+                    const option = document.createElement('option');
+                    option.value = p;
+                    option.textContent = p;
+                    platformFilter.appendChild(option);
+                });
+            }
+
+            platformFilter.addEventListener('change', (e) => {
+                currentPlatform = e.target.value;
+                applyFilters();
+            });
+
+            regionFilterContainer.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    currentRegion = e.target.dataset.region;
+                    regionFilterContainer.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+                    e.target.classList.add('active');
+                    applyFilters();
+                }
+            });
+            
+            let debounceTimer;
+            searchBox.addEventListener('input', (e) => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    currentSearch = e.target.value;
+                    applyFilters();
+                }, 300);
+            });
+
+            populatePlatformFilter();
+            applyFilters();
+        });
+    </script>
+</body>
+</html>
