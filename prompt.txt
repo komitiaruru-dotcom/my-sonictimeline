@@ -1,9 +1,9 @@
-
+!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ソニック・ザ・ヘッジホッグ 発売年表</title>
+    <title>ソニック・ザ・ヘッジホッグ 発売年表 (完全版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
@@ -71,7 +71,7 @@
 
         <header class="text-center mb-8">
             <h1 class="text-4xl md:text-5xl font-bold text-gray-900">ソニック・ザ・ヘッジホッグ</h1>
-            <h2 class="text-2xl md:text-3xl font-bold text-[#0070d1]">インタラクティブ発売年表</h2>
+            <h2 class="text-2xl md:text-3xl font-bold text-[#0070d1]">インタラクティブ発売年表 (完全版)</h2>
             <p class="mt-2 text-gray-600 max-w-2xl mx-auto"></p>
         </header>
 
@@ -188,7 +188,6 @@
             { year: 2022, title: 'ソニックフロンティア', platform: 'PS5/PS4/Switch/XSX/XOne/PC', jp_date: '2022/11/08', overseas_date: '2022/11/08' },
             { year: 2023, title: 'ソニックスーパースターズ', platform: 'PS5/PS4/Switch/XSX/XOne/PC', jp_date: '2023/10/17', overseas_date: '2023/10/17' },
             { year: 2024, title: 'ソニック × シャドウ ジェネレーションズ', platform: 'PS5/PS4/Switch/XSX/XOne/PC', jp_date: '2024/10/25', overseas_date: '2024/10/25' },
-            { year: 2025, title: 'ソニックレーシングクロスワールド', platform: 'PS5/PS4/Switch1.2/XSX/XOne/PC', jp_date: '2025/9/25', overseas_date:'2025/9/25'},
         ];
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -293,7 +292,7 @@
 
                         let titleHTML = game.title;
                         if (currentSearch) {
-                            const regex = new RegExp(currentSearch.replace(/[.*+?^${}()|[\\]/g, '\\$&'), 'gi');
+                            const regex = new RegExp(currentSearch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
                             titleHTML = titleHTML.replace(regex, '<span class="highlight">$&</span>');
                         }
 
@@ -430,7 +429,7 @@
                 
                 if (currentSearch) {
                     try {
-                        const regex = new RegExp(currentSearch.replace(/[.*+?^${}()|[\\]/g, '\\$&'), 'i');
+                        const regex = new RegExp(currentSearch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
                         filteredData = filteredData.filter(game => regex.test(game.title));
                     } catch (e) {
                          console.error("Invalid regex:", e);
@@ -480,3 +479,4 @@
     </script>
 </body>
 </html>
+
