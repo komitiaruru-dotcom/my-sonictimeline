@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>「五感」描写辞典 (フォント変更版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Creative Plum -->
+    <!-- Application Structure Plan: ユーザーからのUI/UXに関するフィードバック（コンテンツの重なりと可読性の低さ）を受け、レイアウトを全面的に刷新。従来の左右2分割・固定（sticky）レイアウトを廃止し、上から下へと流れる単一カラム構成に変更。これにより、①ヘッダー → ②入力 → ③結果表示、という操作フローが明確になり、要素の重なりという根本的な問題を解消。結果表示エリアにはレスポンシブグリッドを採用し、画面サイズに応じてカードが最適に配置されるようにした。この構造は、あらゆるデバイスで直感的かつ快適なユーザー体験を提供するための最適なソリューションであると判断。 -->
+    <!-- Visualization & Content Choices: 
+        - 入力エリア (Input Area): Report Info -> ユーザーが描写したい情景やテーマ。 Goal -> ユーザーからAIへの指示を受け取る。 Viz/Presentation -> ページ上部に配置された独立したカードセクション (HTML/CSS)。 Interaction -> ユーザーが自由記述で入力。 Justification -> ページ上部に固定することで、ユーザーの最初の操作を明確にガイド。
+        - ✨ AI五感描写リスト (AI Sensory Description List): Report Info -> 入力された情景。 Goal -> 五感に基づいた具体的な描写のアイデアを提供する。 Viz/Presentation -> レスポンシブグリッドレイアウト内のカードリスト (HTML/CSS Grid)。 Interaction -> 「描写を生成」ボタンでAPIを呼び出し、入力エリアの下に結果を動的に表示。 Justification -> グリッドレイアウトは、複数のカード情報を一覧で比較するのに優れている。画面幅に応じて列数が自動調整されるため、PCでもスマートフォンでも高い可読性を維持できる。APIのJSONモード利用は継続。
+        - ✨ ショートストーリー自動生成 (Short Story Generation): Report Info -> 生成された五感の描写と元のテーマ。 Goal -> アイデアを具体的な物語の文章に昇華させる。 Viz/Presentation -> 結果エリアの下部に追加される専用カード (HTML/CSS)。 Interaction -> 新たな「ショートストーリーを生成」ボタンでAPIを呼び出し、物語を生成・表示。 Justification -> 生成された描写を実用的な文章へと繋げることで、ツールの価値を大幅に向上させる。ユーザーの創作プロセスを次の段階へ進める強力な後押しとなる。
+        - ✨ 登場人物のアイデア生成 (Character Idea Generation): Report Info -> 生成された情景。 Goal -> 物語を動かすキャラクターを創造する。 Viz/Presentation -> 結果エリアに追加される専用カード (HTML/CSS)。 Interaction -> 「登場人物を生成」ボタンでAPIを呼び出し、構造化されたキャラクタープロフィールを表示。 Justification -> 情景からキャラクターへと発想を広げ、物語の構成要素を具体化する新機能。
+        - ✨ 登場人物のモノローグ生成 (Character Monologue Generation): Report Info -> 生成された情景や物語。 Goal -> キャラクターの心情や内面を掘り下げる。 Viz/Presentation -> 結果エリアに追加される専用カード (HTML/CSS)。 Interaction -> 「モノローグを生成」ボタンでAPIを呼び出し、キャラクターの心の声を表示。 Justification -> 情景描写からキャラクター描写へと創作の焦点を移行させ、物語に深みを与える新機能。
+        - ✨ プロットアイデア生成 (Plot Idea Generation): Report Info -> 生成された情景や物語の冒頭。 Goal -> 物語の次の展開やプロットのヒントを提供する。 Viz/Presentation -> 結果エリアの最後に追加される専用カード (HTML/CSS)。 Interaction -> 「『次に何が起こる？』アイデアを生成」ボタンでAPIを呼び出し、3つの異なるプロット案を表示。 Justification -> 創作における「次の一手」を支援し、物語の停滞を防ぐ。アイデア出しからプロット構築までをシームレスに繋ぐ重要な機能。
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'M PLUS Rounded 1c', 'Noto Sans JP', sans-serif;
+            background-image: url('https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=2070&auto=format&fit=crop');
+            background-size: cover;
+            background-attachment: fixed;
+            background-position: center;
+        }
+        .glass-card {
+            background-color: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .output-card, .story-card, .plot-card, .monologue-card, .character-card {
+            border-left: 4px solid;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .output-card:hover, .story-card:hover, .plot-card:hover, .monologue-card:hover, .character-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        }
+        .loader {
+            border: 4px solid #e5e7eb;
+            border-top: 4px solid #4f46e5;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .btn-primary {
+            background-color: #4f46e5;
+            color: white;
+            transition: background-color 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #4338ca;
+        }
+        .btn-primary:disabled {
+            background-color: #a5b4fc;
+            cursor: not-allowed;
+        }
+        #results-state, #short-story-section, #plot-ideas-section, #monologue-section, #character-ideas-section {
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        #results-state.visible, #short-story-section.visible, #plot-ideas-section.visible, #monologue-section.visible, #character-ideas-section.visible {
+            opacity: 1;
+        }
+        #story-output, #plot-output, #monologue-output, #character-output {
+            white-space: pre-wrap;
+            line-height: 1.75;
+        }
+    </style>
+</head>
+<body class="antialiased text-gray-800">
+
+    <div class="container mx-auto max-w-4xl p-4 md:p-8">
+        
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <div class="inline-block glass-card rounded-2xl shadow-lg p-4 md:p-6">
+                <div class="flex items-center justify-center mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-indigo-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v11.494m-9-5.747h18" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.58 5.582A6.5 6.5 0 0117.75 12a6.5 6.5 0 01-2.17 6.418M8.42 18.418A6.5 6.5 0 016.25 12a6.5 6.5 0 012.17-6.418" />
+                    </svg>
+                    <h1 class="text-3xl md:text-4xl font-bold text-gray-900">「五感」描写辞典</h1>
+                </div>
+                <p class="text-gray-700">あなたの創作世界に、息づかいとリアリティを。</p>
+            </div>
+        </header>
+
+        <main>
+            <!-- Input Section -->
+            <section id="input-section" class="glass-card rounded-2xl shadow-lg p-6 md:p-8 mb-8">
+                <h2 class="text-xl font-bold text-gray-800 mb-2">情景を入力</h2>
+                <p class="text-gray-600 mb-6 text-sm">描写したい情景やテーマを入力してください。Gemini AIが五感を刺激する具体的なアイデアを生成します。</p>
+
+                <div class="space-y-4">
+                    <div>
+                        <textarea id="scene-input" rows="4" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition" placeholder="例：真夜中の図書室、雨上がりのアスファルト、未来都市のラーメン屋台…"></textarea>
+                    </div>
+                    <button id="generate-btn" class="w-full btn-primary font-bold py-3 px-4 rounded-lg shadow-md flex items-center justify-center text-lg">
+                        <span id="btn-text">描写を生成</span>
+                        <div id="btn-loader" class="hidden w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    </button>
+                </div>
+
+                <div class="mt-8">
+                    <h3 class="font-semibold text-gray-700 mb-2 text-sm">試してみよう:</h3>
+                    <div class="flex flex-wrap gap-2">
+                        <button class="example-btn text-xs bg-indigo-100 text-indigo-700 py-1 px-3 rounded-full hover:bg-indigo-200 transition">霧の立ち込める森</button>
+                        <button class="example-btn text-xs bg-indigo-100 text-indigo-700 py-1 px-3 rounded-full hover:bg-indigo-200 transition">夏の終わりの花火大会</button>
+                        <button class="example-btn text-xs bg-indigo-100 text-indigo-700 py-1 px-3 rounded-full hover:bg-indigo-200 transition">サイバーパンクな街の裏通り</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Output Section -->
+            <section id="output-container" class="space-y-8">
+                <div id="initial-state" class="glass-card flex flex-col items-center justify-center text-center text-gray-600 h-full rounded-2xl p-8 min-h-[300px]">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                    </svg>
+                    <h2 class="text-xl font-bold mb-2">ここに描写のアイデアが表示されます</h2>
+                    <p>上のボックスにテーマを入力し、「描写を生成」ボタンを押してください。</p>
+                </div>
+                
+                <div id="loading-state" class="hidden flex-col items-center justify-center text-center text-gray-500 h-full min-h-[300px]">
+                    <div class="loader"></div>
+                    <p class="mt-4 text-lg font-semibold">AIが描写を生成中です...</p>
+                    <p class="text-sm text-gray-400">素晴らしいアイデアを練っています</p>
+                </div>
+
+                <div id="results-state" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Cards will be injected here by JavaScript -->
+                </div>
+
+                <div id="short-story-section" class="hidden">
+                     <div class="story-card glass-card shadow-lg rounded-xl p-6 md:p-8" style="border-color: #d946ef;">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">✨ ショートストーリー生成</h2>
+                        <p class="text-gray-700 mb-6 text-sm">生成された描写をもとに、AIが短い物語を作成します。創作の次の一歩へ進むためのインスピレーションとしてご活用ください。</p>
+                        <button id="generate-story-btn" class="w-full bg-fuchsia-500 text-white font-bold py-3 px-4 rounded-lg shadow-md flex items-center justify-center text-lg hover:bg-fuchsia-600 transition disabled:bg-fuchsia-300 disabled:cursor-not-allowed">
+                            <span id="story-btn-text">この描写からショートストーリーを生成</span>
+                             <div id="story-btn-loader" class="hidden w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        </button>
+                        <div id="story-output-container" class="mt-6 hidden">
+                            <div id="story-output" class="p-4 bg-white/50 rounded-lg text-gray-800 border border-gray-200"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="character-ideas-section" class="hidden">
+                    <div class="character-card glass-card shadow-lg rounded-xl p-6 md:p-8" style="border-color: #f59e0b;">
+                       <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">✨ 登場人物のアイデア生成</h2>
+                       <p class="text-gray-700 mb-6 text-sm">この情景にぴったりのキャラクターをAIが創造します。物語のキャストを考えてみましょう。</p>
+                       <button id="generate-character-btn" class="w-full bg-amber-500 text-white font-bold py-3 px-4 rounded-lg shadow-md flex items-center justify-center text-lg hover:bg-amber-600 transition disabled:bg-amber-300 disabled:cursor-not-allowed">
+                           <span id="character-btn-text">登場人物を生成</span>
+                            <div id="character-btn-loader" class="hidden w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                       </button>
+                       <div id="character-output-container" class="mt-6 hidden">
+                           <div id="character-output" class="p-4 bg-white/50 rounded-lg text-gray-800 border border-gray-200"></div>
+                       </div>
+                   </div>
+               </div>
+
+                <div id="monologue-section" class="hidden">
+                    <div class="monologue-card glass-card shadow-lg rounded-xl p-6 md:p-8" style="border-color: #3b82f6;">
+                       <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">✨ 登場人物のモノローグ生成</h2>
+                       <p class="text-gray-700 mb-6 text-sm">この情景を体験している人物の心の声を生成します。キャラクターの感情を深く掘り下げましょう。</p>
+                       <button id="generate-monologue-btn" class="w-full bg-blue-500 text-white font-bold py-3 px-4 rounded-lg shadow-md flex items-center justify-center text-lg hover:bg-blue-600 transition disabled:bg-blue-300 disabled:cursor-not-allowed">
+                           <span id="monologue-btn-text">モノローグを生成</span>
+                            <div id="monologue-btn-loader" class="hidden w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                       </button>
+                       <div id="monologue-output-container" class="mt-6 hidden">
+                           <div id="monologue-output" class="p-4 bg-white/50 rounded-lg text-gray-800 border border-gray-200"></div>
+                       </div>
+                   </div>
+               </div>
+
+                <div id="plot-ideas-section" class="hidden">
+                     <div class="plot-card glass-card shadow-lg rounded-xl p-6 md:p-8" style="border-color: #f97316;">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">✨ 「次に何が起こる？」アイデア生成</h2>
+                        <p class="text-gray-700 mb-6 text-sm">物語の続きが思いつかない時に。AIが3つの異なる展開を提案し、プロットの構築を手助けします。</p>
+                        <button id="generate-plot-btn" class="w-full bg-orange-500 text-white font-bold py-3 px-4 rounded-lg shadow-md flex items-center justify-center text-lg hover:bg-orange-600 transition disabled:bg-orange-300 disabled:cursor-not-allowed">
+                            <span id="plot-btn-text">プロットアイデアを生成</span>
+                             <div id="plot-btn-loader" class="hidden w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        </button>
+                        <div id="plot-output-container" class="mt-6 hidden">
+                            <div id="plot-output" class="p-4 bg-white/50 rounded-lg text-gray-800 border border-gray-200"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+        </main>
+
+        <footer class="text-center text-xs text-white/80 mt-8">
+            Powered by Google Gemini API
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const sceneInput = document.getElementById('scene-input');
+            const generateBtn = document.getElementById('generate-btn');
+            const btnText = document.getElementById('btn-text');
+            const btnLoader = document.getElementById('btn-loader');
+
+            const initialState = document.getElementById('initial-state');
+            const loadingState = document.getElementById('loading-state');
+            const resultsState = document.getElementById('results-state');
+
+            const shortStorySection = document.getElementById('short-story-section');
+            const generateStoryBtn = document.getElementById('generate-story-btn');
+            const storyBtnText = document.getElementById('story-btn-text');
+            const storyBtnLoader = document.getElementById('story-btn-loader');
+            const storyOutputContainer = document.getElementById('story-output-container');
+            const storyOutput = document.getElementById('story-output');
+
+            const characterIdeasSection = document.getElementById('character-ideas-section');
+            const generateCharacterBtn = document.getElementById('generate-character-btn');
+            const characterBtnText = document.getElementById('character-btn-text');
+            const characterBtnLoader = document.getElementById('character-btn-loader');
+            const characterOutputContainer = document.getElementById('character-output-container');
+            const characterOutput = document.getElementById('character-output');
+
+            const monologueSection = document.getElementById('monologue-section');
+            const generateMonologueBtn = document.getElementById('generate-monologue-btn');
+            const monologueBtnText = document.getElementById('monologue-btn-text');
+            const monologueBtnLoader = document.getElementById('monologue-btn-loader');
+            const monologueOutputContainer = document.getElementById('monologue-output-container');
+            const monologueOutput = document.getElementById('monologue-output');
+
+            const plotIdeasSection = document.getElementById('plot-ideas-section');
+            const generatePlotBtn = document.getElementById('generate-plot-btn');
+            const plotBtnText = document.getElementById('plot-btn-text');
+            const plotBtnLoader = document.getElementById('plot-btn-loader');
+            const plotOutputContainer = document.getElementById('plot-output-container');
+            const plotOutput = document.getElementById('plot-output');
+
+            let lastGeneratedDescriptions = null;
+            const apiKey = "AIzaSyAHltGAm3g3C6Jx0rZ_xWYXSLLWwYSFZtE";
+
+            const senseConfig = {
+                sight: { title: "視覚 - Sight", color: "#3b82f6", icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>` },
+                sound: { title: "聴覚 - Sound", color: "#10b981", icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.636 18.364a9 9 0 010-12.728m12.728 0A5 5 0 0115.536 8.464" /></svg>` },
+                smell: { title: "嗅覚 - Smell", color: "#f59e0b", icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 18H5a2 2 0 01-2-2V8a2 2 0 012-2h2.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V18a2 2 0 01-2 2z" /><path stroke-linecap="round" stroke-linejoin="round" d="M13 18V6a2 2 0 012-2h2a2 2 0 012 2v12a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>` },
+                taste: { title: "味覚 - Taste", color: "#ef4444", icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18a6 6 0 006-6H6a6 6 0 006 6z" /><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m0 16v-2m-7.071-7.071H3m18 0h-1.929M5.636 5.636L4.222 4.222m15.556 15.556l-1.414-1.414M12 4a8 8 0 018 8h-2a6 6 0 00-6-6V4z" /></svg>` },
+                touch: { title: "触覚 - Touch", color: "#8b5cf6", icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" /></svg>` }
+            };
+            
+            const exampleBtns = document.querySelectorAll('.example-btn');
+            exampleBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    sceneInput.value = btn.textContent;
+                    generateBtn.click();
+                });
+            });
+
+            generateBtn.addEventListener('click', async () => {
+                const scene = sceneInput.value.trim();
+                if (!scene) {
+                    alert('情景・テーマを入力してください。');
+                    return;
+                }
+
+                // UI to loading state
+                generateBtn.disabled = true;
+                btnText.classList.add('hidden');
+                btnLoader.classList.remove('hidden');
+                initialState.classList.add('hidden');
+                resultsState.classList.remove('visible', 'grid');
+                resultsState.classList.add('hidden');
+                [shortStorySection, plotIdeasSection, monologueSection, characterIdeasSection].forEach(section => {
+                    section.classList.add('hidden');
+                    section.classList.remove('visible');
+                });
+                loadingState.classList.remove('hidden');
+                loadingState.classList.add('flex');
+
+                const systemPrompt = `あなたはプロの作家であり、情景描写の達人です。ユーザーが提示したお題や情景に対して、五感（視覚、聴覚、嗅覚、味覚、触覚）をフル活用した、具体的で詩的な描写のアイデアをそれぞれ3～5個ずつ提供してください。`;
+                const userQuery = `お題: ${scene}`;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                
+                try {
+                     const payload = {
+                        contents: [{ parts: [{ text: userQuery }] }],
+                        systemInstruction: { parts: [{ text: systemPrompt }] },
+                        generationConfig: {
+                            responseMimeType: "application/json",
+                            responseSchema: {
+                                type: "OBJECT",
+                                properties: {
+                                    sight: { type: "ARRAY", items: { type: "STRING" } },
+                                    sound: { type: "ARRAY", items: { type: "STRING" } },
+                                    smell: { type: "ARRAY", items: { type: "STRING" } },
+                                    taste: { type: "ARRAY", items: { type: "STRING" } },
+                                    touch: { type: "ARRAY", items: { type: "STRING" } },
+                                }
+                            }
+                        }
+                    };
+
+                    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    if (!response.ok) { throw new Error(`API Error: ${response.statusText}`); }
+                    
+                    const result = await response.json();
+                    const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                    if (jsonText) {
+                        const descriptions = JSON.parse(jsonText);
+                        lastGeneratedDescriptions = descriptions; // Save for story generation
+                        displayResults(descriptions);
+                    } else {
+                         throw new Error('AIからの応答が不正です。');
+                    }
+
+                } catch (error) {
+                    console.error('Error generating descriptions:', error);
+                    displayError();
+                } finally {
+                    generateBtn.disabled = false;
+                    btnText.classList.remove('hidden');
+                    btnLoader.classList.add('hidden');
+                    loadingState.classList.add('hidden');
+                    loadingState.classList.remove('flex');
+                }
+            });
+
+             generateStoryBtn.addEventListener('click', async () => {
+                const scene = sceneInput.value.trim();
+                if (!scene || !lastGeneratedDescriptions) return;
+
+                generateStoryBtn.disabled = true;
+                storyBtnText.classList.add('hidden');
+                storyBtnLoader.classList.remove('hidden');
+                storyOutputContainer.classList.remove('hidden');
+                storyOutput.textContent = '物語を紡いでいます...';
+
+                const sensoryDetails = Object.entries(lastGeneratedDescriptions)
+                    .filter(([, values]) => values.length > 0)
+                    .map(([sense, values]) => `${senseConfig[sense].title}: ${values.join(', ')}`)
+                    .join('\n');
+
+                const systemPrompt = `あなたは創造力豊かな作家です。与えられたテーマと五感の描写を基に、読者の心を引き込むような短い物語（200～300字程度）を創作してください。情景だけでなく、キャラクターの心情や行動も少し含めると、より魅力的な物語になります。`;
+                const userQuery = `テーマ: ${scene}\n\n五感の描写:\n${sensoryDetails}`;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+                try {
+                    const payload = { contents: [{ parts: [{ text: userQuery }] }], systemInstruction: { parts: [{ text: systemPrompt }] } };
+                    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+
+                    if (!response.ok) { throw new Error(`API Error: ${response.statusText}`); }
+                    const result = await response.json();
+                    const storyText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                    if(storyText) {
+                        storyOutput.textContent = storyText;
+                    } else {
+                        throw new Error('AIからの応答が不正です。');
+                    }
+                } catch (error) {
+                    console.error('Error generating story:', error);
+                    storyOutput.textContent = '物語の生成中にエラーが発生しました。';
+                } finally {
+                    generateStoryBtn.disabled = false;
+                    storyBtnText.classList.remove('hidden');
+                    storyBtnLoader.classList.add('hidden');
+                }
+            });
+            
+            generateCharacterBtn.addEventListener('click', async () => {
+                const scene = sceneInput.value.trim();
+                if (!scene) return;
+
+                generateCharacterBtn.disabled = true;
+                characterBtnText.classList.add('hidden');
+                characterBtnLoader.classList.remove('hidden');
+                characterOutputContainer.classList.remove('hidden');
+                characterOutput.textContent = '魅力的な人物を考案中...';
+                
+                const systemPrompt = `あなたはプロのキャラクターデザイナーです。与えられたテーマの情景にふさわしい、ユニークで魅力的な登場人物を一人作成してください。以下の項目について、具体的に記述してください。`;
+                const userQuery = `テーマ: ${scene}`;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+                try {
+                     const payload = {
+                        contents: [{ parts: [{ text: userQuery }] }],
+                        systemInstruction: { parts: [{ text: systemPrompt }] },
+                        generationConfig: {
+                            responseMimeType: "application/json",
+                            responseSchema: {
+                                type: "OBJECT",
+                                properties: {
+                                    name: { type: "STRING", description: "キャラクターの名前" },
+                                    appearance: { type: "STRING", description: "キャラクターの外見、服装などの特徴" },
+                                    personality: { type: "STRING", description: "キャラクターの性格、口調などの特徴" },
+                                    reason: { type: "STRING", description: "そのキャラクターがなぜその場所にいるのかの理由" },
+                                }
+                            }
+                        }
+                    };
+
+                    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    if (!response.ok) { throw new Error(`API Error: ${response.statusText}`); }
+                    
+                    const result = await response.json();
+                    const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    
+                    if (jsonText) {
+                        const char = JSON.parse(jsonText);
+                        characterOutput.innerHTML = `
+                            <p><strong class="font-semibold text-gray-900">名前:</strong> ${char.name || '未設定'}</p>
+                            <p><strong class="font-semibold text-gray-900">外見:</strong> ${char.appearance || '未設定'}</p>
+                            <p><strong class="font-semibold text-gray-900">性格:</strong> ${char.personality || '未設定'}</p>
+                            <p><strong class="font-semibold text-gray-900">この場所にいる理由:</strong> ${char.reason || '未設定'}</p>
+                        `;
+                    } else {
+                         throw new Error('AIからの応答が不正です。');
+                    }
+                } catch (error) {
+                    console.error('Error generating character:', error);
+                    characterOutput.textContent = '登場人物の生成中にエラーが発生しました。';
+                } finally {
+                    generateCharacterBtn.disabled = false;
+                    characterBtnText.classList.remove('hidden');
+                    characterBtnLoader.classList.add('hidden');
+                }
+            });
+
+            generateMonologueBtn.addEventListener('click', async () => {
+                const scene = sceneInput.value.trim();
+                const story = storyOutput.textContent;
+                if (!scene) return;
+
+                generateMonologueBtn.disabled = true;
+                monologueBtnText.classList.add('hidden');
+                monologueBtnLoader.classList.remove('hidden');
+                monologueOutputContainer.classList.remove('hidden');
+                monologueOutput.textContent = 'キャラクターの心の声を探っています...';
+                
+                const systemPrompt = `あなたはキャラクターの感情を描写するのが得意な小説家です。与えられたテーマ、情景描写、そして短い物語を基に、その場にいる人物の視点から、心の声や感情が伝わる短いモノローグ（150～200字程度）を創作してください。`;
+                const userQuery = `テーマ: ${scene}\n\n物語の状況:\n${story.includes('生成中') || story.includes('エラー') ? '（物語はまだ生成されていませんが、このテーマの情景です）' : story}`;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+                try {
+                    const payload = { contents: [{ parts: [{ text: userQuery }] }], systemInstruction: { parts: [{ text: systemPrompt }] } };
+                    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+
+                    if (!response.ok) { throw new Error(`API Error: ${response.statusText}`); }
+                    const result = await response.json();
+                    const monologueText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                    if(monologueText) {
+                        monologueOutput.textContent = monologueText;
+                    } else {
+                        throw new Error('AIからの応答が不正です。');
+                    }
+                } catch (error) {
+                    console.error('Error generating monologue:', error);
+                    monologueOutput.textContent = 'モノローグの生成中にエラーが発生しました。';
+                } finally {
+                    generateMonologueBtn.disabled = false;
+                    monologueBtnText.classList.remove('hidden');
+                    monologueBtnLoader.classList.add('hidden');
+                }
+            });
+
+            generatePlotBtn.addEventListener('click', async () => {
+                const scene = sceneInput.value.trim();
+                const story = storyOutput.textContent;
+                if (!scene) return;
+
+                generatePlotBtn.disabled = true;
+                plotBtnText.classList.add('hidden');
+                plotBtnLoader.classList.remove('hidden');
+                plotOutputContainer.classList.remove('hidden');
+                plotOutput.textContent = '物語の新たな可能性を探っています...';
+
+                const systemPrompt = `あなたは経験豊富な編集者であり、ストーリーテラーです。与えられたテーマと物語の冒頭部分を基に、「次に何が起こるか」についての興味をそそるプロットのアイデアを3つ、箇条書きで提案してください。それぞれのアイデアは、物語を異なる方向へ導くユニークなものであるべきです。`;
+                const userQuery = `テーマ: ${scene}\n\n物語の冒頭:\n${story.includes('生成中') || story.includes('エラー') ? '（物語はまだ生成されていません）' : story}`;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+                 try {
+                    const payload = { contents: [{ parts: [{ text: userQuery }] }], systemInstruction: { parts: [{ text: systemPrompt }] } };
+                    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+
+                    if (!response.ok) { throw new Error(`API Error: ${response.statusText}`); }
+                    const result = await response.json();
+                    const plotText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                    if(plotText) {
+                        plotOutput.textContent = plotText;
+                    } else {
+                        throw new Error('AIからの応答が不正です。');
+                    }
+                } catch (error) {
+                    console.error('Error generating plot ideas:', error);
+                    plotOutput.textContent = 'プロットアイデアの生成中にエラーが発生しました。';
+                } finally {
+                    generatePlotBtn.disabled = false;
+                    plotBtnText.classList.remove('hidden');
+                    plotBtnLoader.classList.add('hidden');
+                }
+            });
+            
+            function displayResults(descriptions) {
+                resultsState.innerHTML = '';
+                
+                for (const sense in senseConfig) {
+                    if (descriptions[sense] && descriptions[sense].length > 0) {
+                        const card = createSenseCard(sense, descriptions[sense]);
+                        resultsState.appendChild(card);
+                    }
+                }
+                
+                resultsState.classList.remove('hidden');
+                resultsState.classList.add('grid');
+                setTimeout(() => resultsState.classList.add('visible'), 10);
+                
+                // Show subsequent sections
+                [shortStorySection, characterIdeasSection, monologueSection, plotIdeasSection].forEach(section => {
+                    const outputContainer = section.querySelector('div[id$="-output-container"]');
+                    const output = section.querySelector('div[id$="-output"]');
+                    outputContainer.classList.add('hidden');
+                    output.textContent = '';
+                    section.classList.remove('hidden');
+                    setTimeout(() => section.classList.add('visible'), 10);
+                });
+            }
+            
+            function createSenseCard(sense, items) {
+                const config = senseConfig[sense];
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'output-card glass-card shadow-lg rounded-xl';
+                cardDiv.style.borderColor = config.color;
+
+                const listItems = items.map(item => `<li class="pb-1">${item}</li>`).join('');
+
+                cardDiv.innerHTML = `
+                    <div class="p-5">
+                        <div class="flex items-center mb-3" style="color: ${config.color};">
+                            ${config.icon}
+                            <h2 class="text-xl font-bold">${config.title}</h2>
+                        </div>
+                        <ul class="list-disc list-inside space-y-2 text-gray-700 pl-2">
+                            ${listItems}
+                        </ul>
+                    </div>
+                `;
+                return cardDiv;
+            }
+            
+            function displayError() {
+                resultsState.classList.add('hidden');
+                resultsState.classList.remove('visible', 'grid');
+                [shortStorySection, plotIdeasSection, monologueSection, characterIdeasSection].forEach(section => {
+                     section.classList.add('hidden');
+                     section.classList.remove('visible');
+                });
+                initialState.classList.remove('hidden');
+                initialState.querySelector('h2').textContent = "エラーが発生しました";
+                initialState.querySelector('p').textContent = "描写の生成に失敗しました。時間をおいて再度お試しください。";
+            }
+        });
+    </script>
+</body>
+</html>
